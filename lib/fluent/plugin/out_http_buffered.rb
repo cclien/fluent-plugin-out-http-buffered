@@ -2,7 +2,7 @@
 
 module Fluent
   # Main Output plugin class
-  class HttpBufferedOutput < Fluent::BufferedOutput
+  class HttpBufferedOutput < Fluent::TimeSlicedOutput
     Fluent::Plugin.register_output('http_buffered', self)
 
     def initialize

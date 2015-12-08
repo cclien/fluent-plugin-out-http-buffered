@@ -11,11 +11,13 @@ class HttpBufferedOutputTest < Test::Unit::TestCase
 
   CONFIG = %[
     endpoint_url  http://local.endpoint
+    buffer_path   /tmp/buffer
   ]
 
   # Used to test invalid method config
   CONFIG_METHOD = %[
     endpoint_url local.endpoint
+    buffer_path  /tmp/buffer
     http_method  invalid_method
   ]
 
@@ -47,6 +49,7 @@ class HttpBufferedOutputTest < Test::Unit::TestCase
 
     d = create_driver(%[
         endpoint_url http://local.endpoint
+        buffer_path  /tmp/buffer
         http_retry_statuses 500
       ])
 
@@ -74,7 +77,10 @@ class HttpBufferedOutputTest < Test::Unit::TestCase
   def test_write
     setup_rspec(self)
 
-    d = create_driver('endpoint_url http://www.google.com/')
+    d = create_driver(%[
+        endpoint_url http://www.google.com/
+        buffer_path  /tmp/buffer
+      ])
 
     d.emit('message')
     http = double('Net::HTTP')

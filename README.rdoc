@@ -33,6 +33,8 @@ The plugin was influenced by the standard http_output_plugin[https://github.com/
       http_read_timeout 2.2
       #Open timeout in seconds, supports floats
       http_open_timeout 2.34
+      buffer_chunk_limit 1m
+      buffer_path /tmp/buffer
     </match>
 
 == Copyright
