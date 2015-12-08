@@ -35,6 +35,8 @@ The plugin was influenced by the standard http_output_plugin[https://github.com/
       http_open_timeout 2.34
       buffer_chunk_limit 1m
       buffer_path /tmp/buffer
+      # Additional header (default: nil). It might be useful to use this with out_forest to include tag/hostname as header.
+      additional_headers X-custom-header1=foo,X-custom-header2=bar
     </match>
 
 == Copyright

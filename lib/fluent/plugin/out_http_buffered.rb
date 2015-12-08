@@ -23,6 +23,9 @@ module Fluent
     # open timeout for the http call
     config_param :http_open_timeout, :float, default: 2.0
 
+    # Addtional HTTP Header
+    config_param :additional_headers, :string, :default=> nil
+
     def configure(conf)
       super
 
@@ -46,6 +49,12 @@ module Fluent
       @http.use_ssl = (@uri.scheme == "https")
       @http.read_timeout = @http_read_timeout
       @http.open_timeout = @http_open_timeout
+
+      # Convert string to Hash (Header name => string)
+      if @additional_headers
+        @additional_headers = Hash[@additional_headers.split(",").map{ |f| f.split("=",2)}]
+      end
+
     end
 
     def start
@@ -100,6 +109,11 @@ module Fluent
 
         # Headers
         request['Content-Type'] = 'application/json'
+        if @additional_headers
+          @additional_headers.each{|k,v|
+            request[k] = v
+          }
+        end
 
         # Body
         request.body = JSON.dump(data)
