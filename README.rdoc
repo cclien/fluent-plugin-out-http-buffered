@@ -27,6 +27,10 @@ The plugin was influenced by the standard http_output_plugin[https://github.com/
       flush_interval 2s
       #Endpoint for messages
       endpoint_url    http://localhost/fluent.php
+      #HTTP method (default: post)
+      http_method put
+      #Max number of events per HTTP request
+      http_event_limit 100
       #Comma separated list of http statuses which need to be retried
       http_retry_statuses 500, 403
       #Read timeout in seconds, supports floats
