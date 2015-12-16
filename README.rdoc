@@ -26,7 +26,7 @@ The plugin was influenced by the standard http_output_plugin[https://github.com/
       type http_buffered
       flush_interval 2s
       #Endpoint for messages
-      endpoint_url    http://localhost/fluent.php
+      endpoint_url    http://localhost.local/api/<data.id> # <data.id> refres to data.id in the record like {"data"=> {"id"=> 1, "name"=> "foo"}}
       #HTTP method (default: post)
       http_method put
       #Max number of events per HTTP request

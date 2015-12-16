@@ -1,5 +1,27 @@
 # encoding: utf-8
 
+class Hash
+  """
+  each traverse in hash
+  """
+  def each_deep(&proc)
+    self.each_deep_detail([], &proc)
+  end
+
+  def each_deep_detail(directory, &proc)
+    self.each do |k, v|
+      current = directory + [k]
+      if v.kind_of?(Hash)
+        v.each_deep_detail(current, &proc)
+      else
+        yield(current, v)
+      end
+    end
+  end
+
+end
+
+
 module Fluent
   # Main Output plugin class
 
@@ -43,15 +65,15 @@ module Fluent
       super
 
       # Check if endpoint URL is valid
-      unless @endpoint_url =~ /^#{URI.regexp}$/
-        fail Fluent::ConfigError, 'endpoint_url invalid'
-      end
+      #unless @endpoint_url =~ /^#{URI.regexp}$/
+      #  fail Fluent::ConfigError, 'endpoint_url invalid'
+      #end
 
-      begin
-        @uri = URI.parse(@endpoint_url)
-      rescue URI::InvalidURIError
-        raise Fluent::ConfigError, 'endpoint_url invalid'
-      end
+      #begin
+      #  @uri = URI.parse(@endpoint_url)
+      #rescue URI::InvalidURIError
+      #  raise Fluent::ConfigError, 'endpoint_url invalid'
+      #end
 
       # Parse http statuses
       @statuses = @http_retry_statuses.split(',').map { |status| status.to_i }
@@ -85,12 +107,19 @@ module Fluent
       [tag, time, record].to_msgpack
     end
 
-    def http_write(data)
-      http = Net::HTTP.new(@uri.host, @uri.port)
-      http.use_ssl = (@uri.scheme == "https")
+    def http_write(url,data)
+      $log.debug "URL: #{url}"
+      begin
+        uri = URI.parse(url)
+      rescue URI::InvalidURIError
+        $log.warn "[http_write] Wrong formatted URI #{uri}"
+        return
+      end
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = (uri.scheme == "https")
       http.read_timeout = @http_read_timeout
       http.open_timeout = @http_open_timeout
-      request = create_request(data)
+      request = create_request(uri,data)
 
       retry_count = 0
       begin
@@ -108,7 +137,7 @@ module Fluent
           raise HTTPretryException, "Server returned bad status: #{response.code}"
         end
       rescue HTTPretryException => e
-        $log.warn "Got HTTP client error #{e.message}, retry #{retry_count}"
+        $log.info "Got HTTP client error #{e.message}, retry #{retry_count}"
         retry
       rescue IOError, EOFError, SystemCallError => e
         # server didn't respond
@@ -116,28 +145,57 @@ module Fluent
       ensure
         begin
           http.finish
+          # Thread.current.exit
         rescue
         end
       end
     end
+    
+    def format_url(record)
+      '''
+      replace format string to value
+      example
+        /test/<data> =(use {data: 1})> /test/1
+        /test/<hash.data> =(use {hash:{data:2}})> /test/2
+      '''
+      result_url = @endpoint_url
+      record.each_deep do |key_dir, value|
+        result_url = result_url.gsub(/<#{key_dir.join(".")}>/, value.to_s)
+      end
+      return result_url
 
+    end
+    
     def write(chunk)
-      buf = []
+      urlObjs = {}
       threads = []
-      data = []
       chunk.msgpack_each do |(tag, time, record)|
-        buf << record
-        if buf.length >= @http_event_limit
-          data << buf
-          small_chunk_index = data.length-1 
-          threads << Thread.new { http_write(data[small_chunk_index]) }
-          buf = []
+        # get buffer
+        url = format_url(record)
+        if urlObjs.include? url
+          urlObj = urlObjs[url]
+        else
+          urlObj = {}
+          urlObj['buf']=[]
+          urlObj['data']=[]
+          urlObjs[url]=urlObj
+        end
+
+        urlObj['buf'] << record
+        if urlObj['buf'].length >= @http_event_limit  # reached max events per HTTP request
+          urlObj['data'] << urlObj['buf']
+          small_chunk_index = urlObj['data'].length-1 
+          threads << Thread.new { http_write(url,urlObj['data'][small_chunk_index]) }
+          urlObj['buf'] = []
         end
       end
 
-      if buf.length > 0
-        threads << Thread.new { http_write(buf) }
-      end
+      urlObjs.each { |url,urlObj|
+        if urlObj['buf'].length > 0
+          threads << Thread.new { http_write(url,urlObj['buf']) }
+        end
+      }
+            
       threads.each { |thr| thr.join }
 
       $log.debug "Wrote chunk size #{chunk.size} with #{threads.length} threads"
@@ -145,8 +203,8 @@ module Fluent
     end
 
     protected
-    def create_request(data)
-      request = Net::HTTP.const_get(@http_method.to_s.capitalize).new(@uri.request_uri)
+    def create_request(uri,data)
+      request = Net::HTTP.const_get(@http_method.to_s.capitalize).new(uri.request_uri)
 
       # Headers
       request['Content-Type'] = 'application/json'
