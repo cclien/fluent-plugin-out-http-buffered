@@ -1,7 +1,6 @@
-{<img src="https://badge.fury.io/rb/fluent-plugin-out-http-buffered.png" alt="Gem Version" />}[http://badge.fury.io/rb/fluent-plugin-out-http-buffered]
-{<img src="https://travis-ci.org/ablagoev/fluent-plugin-out-http-buffered.png?branch=master" />}[https://travis-ci.org/ablagoev/fluent-plugin-out-http-buffered]
-{<img src="https://coveralls.io/repos/ablagoev/fluent-plugin-out-http-buffered/badge.png" alt="Coverage Status" />}[https://coveralls.io/r/ablagoev/fluent-plugin-out-http-buffered]
-{<img src="https://codeclimate.com/github/ablagoev/fluent-plugin-out-http-buffered.png" />}[https://codeclimate.com/github/ablagoev/fluent-plugin-out-http-buffered]
+= Introduction
+
+Here's a fork of ablagoev's plugin[https://github.com/ablagoev/fluent-plugin-out-http-buffered] to meet our project specified needs.
 
 = fluent-out-http-buffered
 
@@ -11,9 +10,16 @@ It has configurable read[http://ruby-doc.org/stdlib-2.0/libdoc/net/http/rdoc/Net
 
 Clients can also configure which http response statuses should be retried (in most cases clients would want to retry on status 500).
 
-All messages are sent through POST in json format.
+Maximum number of records in a HTTP request can be configured. A chunk will be sent by multiple threads.
 
-The plugin was influenced by the standard http_output_plugin[https://github.com/ento/fluent-plugin-out-http].
+Additional headers can be configured with "additional_headers" property.
+
+The plugin was influenced by following projects:
+standard http_output_plugin[https://github.com/ento/fluent-plugin-out-http]
+http-out-ext[https://github.com/kawasakitoshiya/fluent-plugin-out-http-ext]
+ogibayashi's_fork[https://github.com/ogibayashi/fluent-plugin-out-http-buffered]
+niku4i's_fork[https://github.com/niku4i/fluent-plugin-out-http-buffered]
+
 
 == Installation:
 
@@ -42,6 +48,10 @@ The plugin was influenced by the standard http_output_plugin[https://github.com/
       # Additional header (default: nil). It might be useful to use this with out_forest to include tag/hostname as header.
       additional_headers X-custom-header1=foo,X-custom-header2=bar
     </match>
+
+== Todo
+
+* TODO: Update the test cases for added features
 
 == Copyright
 
