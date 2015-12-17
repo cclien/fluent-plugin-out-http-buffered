@@ -137,7 +137,7 @@ module Fluent
           http.request request
         end
 
-        $log.debug "response code: #{response.code}"
+        $log.debug "#{url} response code: #{response.code}"
         
         if @statuses.include? response.code.to_i
           # Raise an exception so that fluent retries
@@ -146,10 +146,13 @@ module Fluent
         end
       rescue HTTPretryException => e
         $log.info "Got HTTP client error #{e.message}, retry #{retry_count}"
+        $log.debug "URL: #{url} DATA: #{data}"
         retry
-      rescue IOError, EOFError, SystemCallError => e
+      rescue Timeout::Error, IOError, EOFError, SystemCallError => e
         # server didn't respond
-        $log.warn "Net::HTTP.#{request.method.capitalize} raises exception: #{e.class}, '#{e.message}'"
+        $log.warn "Net::HTTP.#{request.method.capitalize} raises exception: #{e.class}, '#{e.message}' retry #{retry_count}"
+        $log.debug "URL: #{url} DATA: #{data}"
+        retry
       ensure
         begin
           http.finish
@@ -223,7 +226,7 @@ module Fluent
       end
 
       # Body
-      request.body = JSON.dump(data)
+      request.body = data.to_json(:ascii_only => true)
 
       request
     end
