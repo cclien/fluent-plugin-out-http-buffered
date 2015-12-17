@@ -60,6 +60,9 @@ module Fluent
 
     # Addtional HTTP Header
     config_param :additional_headers, :string, :default=> nil
+    
+    # Verify SSL
+    config_param :verify_ssl, :bool, :default => true
 
     def configure(conf)
       super
@@ -119,6 +122,9 @@ module Fluent
       http.use_ssl = (uri.scheme == "https")
       http.read_timeout = @http_read_timeout
       http.open_timeout = @http_open_timeout
+      unless @verify_ssl
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
       request = create_request(uri,data)
 
       retry_count = 0
@@ -131,6 +137,8 @@ module Fluent
           http.request request
         end
 
+        $log.debug "response code: #{response.code}"
+        
         if @statuses.include? response.code.to_i
           # Raise an exception so that fluent retries
           #fail "Server returned bad status: #{response.code}"
@@ -198,7 +206,7 @@ module Fluent
             
       threads.each { |thr| thr.join }
 
-      $log.debug "Wrote chunk size #{chunk.size} with #{threads.length} threads"
+      $log.info "Wrote chunk size #{chunk.size} with #{threads.length} threads"
 
     end
 
